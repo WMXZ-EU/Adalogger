@@ -12,7 +12,7 @@ import sdcardio
 import storage
 import microcontroller
 import rtc
-import adafruit_ds3231
+from lib import adafruit_ds3231
 import gc
 import supervisor
 import digitalio
