@@ -1,6 +1,6 @@
 # CircuitPython microPAM code for rp2040 Adalogger
 
-![microPAM](.microPAM.jpg)
+![microPAM](./microPAM.jpg)
 
 Special issue:
 
