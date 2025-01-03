@@ -11,6 +11,15 @@ This is a Passive Acoustic Monitor (PAM) using Adafruit PR2040 Adalogger and ICS
 
 ![](./microPAM.jpg)
 
+The basic components are (cost as of 03-Jan-2025)
+
+| Product                 | Adafruit ID | Cost      |
+|-------------------------|-------------|-----------|
+| RP2040 Adalogger        | ID 5980     | 15.95 US$ |
+| DS3231 RTC Featherwing  | ID 3028     | 13.95 US$ |
+| ICS43434 I2S Microphone | ID 6049     | 4.95 US$  |
+plus micro SD card and either 5V Powerbank or 3.7 V Lithium Ion battery 
+
 It uses CircuitPython as basic firmware and a small python script **microPAM.py**. 
 The I2S microphone is accessed via a custom PIO module **I2S.py** that controls the I2S bus 
 and fetches the MEMS audio data.
@@ -50,3 +59,5 @@ While writing to disk, the LED light up to indicate disk activity. Also, the gar
 The **logger(buffer)** function handles  all disk related operation, like file name creation, file opening, writing 
 and closing.
 
+## Power consumption
+Running the RP2040 at 96 MHz the overall consumption is about 250 mW. 
