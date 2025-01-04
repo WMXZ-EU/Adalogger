@@ -40,6 +40,6 @@ def i2s_ICS43434(fs=48000,nbits=32):
         "push_threshold": nbits
     }
     pio_instructions = adafruit_pioasm.assemble(i2s_input)
-    print(pio_instructions)
+    #print(pio_instructions)
     sm = rp2pio.StateMachine(pio_instructions, **pio_params)
     return sm

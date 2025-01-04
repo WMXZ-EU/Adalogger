@@ -5,6 +5,7 @@
   * [I2S Microphone](#i2s-microphone)
   * [Main Loop](#main-loop)
   * [Logger function](#logger-function)
+  * [Power consumption](#power-consumption)
 <!-- TOC -->
 ## Overview
 This is a Passive Acoustic Monitor (PAM) using Adafruit PR2040 Adalogger and ICS43434 I2S MEMS microphones.
@@ -18,7 +19,7 @@ The basic components are (cost as of 03-Jan-2025)
 | RP2040 Adalogger        | ID 5980     | 15.95 US$ |
 | DS3231 RTC Featherwing  | ID 3028     | 13.95 US$ |
 | ICS43434 I2S Microphone | ID 6049     | 4.95 US$  |
-plus micro SD card and either 5V Powerbank or 3.7 V Lithium Ion battery 
+plus micro SD card, RTC coin cell and either 5V Powerbank or 3.7 V Lithium Ion battery 
 
 It uses CircuitPython as basic firmware and a small python script **microPAM.py**. 
 The I2S microphone is accessed via a custom PIO module **I2S.py** that controls the I2S bus 
