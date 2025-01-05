@@ -37,9 +37,9 @@ def prep_header(num_channels, sampleRate, bitsPerSample):
     header[504:508] =  bytes("data", "ascii")  # (4byte) Data Chunk Marker
     header[508:512] =  (0).to_bytes(4, "little")  # (4byte) Data size in bytes
 
-def update_header(total_bytes_written):
-    header[4:8] = (total_bytes_written + 512 - 2 * 4).to_bytes(4, "little")
-    header[508:512] = total_bytes_written.to_bytes(4, "little")
+def update_header(nbytes):
+    header[4:8] = (nbytes + 512 - 2 * 4).to_bytes(4, "little")
+    header[508:512] = nbytes.to_bytes(4, "little")
 
 #----------------------------------------------------------
 
@@ -55,22 +55,11 @@ def logger(data):
         fname="{}_{}.wav".format(uid_str,Date)
         t1=time.monotonic()
         wav = open(fname, "wb")
-        if have_serial>0:
-            print(time.monotonic()-t1)
-        pos = wav.seek(44)  # advance to first byte of Data section in WAV file
+        t1=time.monotonic()-t1
+        pos = wav.seek(512)  # advance to first byte of Data section in WAV file
         total_bytes_written = 0
-        if have_serial>0:
-            print(time.monotonic()-t1)
         if 1:
-            if have_serial > 0:
-                print('opening:',fname, time_open , loop_count, data_count)
-                print('   ',end=' ')
-                for x in data[:14]: print(f"{x:08x}",end=' ')
-                print()
-            data_count = 0
-            loop_count = 0
-        if have_serial > 0:
-            print(time.monotonic()-t1)
+            print('opening:',fname,t1,end=' ')
         status = RECORDING
 
     if (status == RECORDING) | (status == MUST_STOP):
@@ -81,22 +70,24 @@ def logger(data):
         # check to close
         tmp_time=(time.time() % t_on )
         if (tmp_time < old_time) | (status == MUST_STOP):
-            t1 = time.monotonic()
 
             # create header for WAV file and write to SD card
             update_header(total_bytes_written)
             wav_header=header
-            num_samples = total_bytes_written // (4 * NCH)
-            if have_serial > 0:
-                print('num_samples',num_samples, num_samples/fsamp)
             _ = wav.seek(0)  # return to first byte of Header section in WAV file
             num_bytes_written = wav.write(wav_header)
 
             # close file
+            t1 = time.monotonic()
             wav.close()
-            if have_serial > 0:
-                print(time.monotonic() - t1, gc.mem_free())
+            t1=time.monotonic()-t1
             #
+            num_samples = total_bytes_written // (4 * NCH)
+            print('\t'
+                  'nsamp',num_samples, num_samples/fsamp, data_count, loop_count, t1,'\t',data[0])
+            data_count = 0
+            loop_count = 0
+
             # should we stop or do we continue with next file?
             if status==MUST_STOP:
                 status=STOPPED
@@ -151,7 +142,7 @@ old_time=0
 wav: None
 total_bytes_written: int = 0
 
-microcontroller.cpu.frequency=84_000_000
+microcontroller.cpu.frequency=96_000_000
 # Connect to the card and mount the filesystem.
 spi = busio.SPI(board.SD_CLK, board.SD_MOSI, board.SD_MISO)
 sdcard = sdcardio.SDCard(spi, board.SD_CS, baudrate=24000000)
@@ -216,7 +207,7 @@ if have_serial>0:
     print(f"#             Temperature {microcontroller.cpu.temperature:3.1f}")
     print()
 
-NSAMP= 8*1200
+NSAMP= 9600
 buffer_in1 = array.array("l", (1 for _ in range(NSAMP)))
 buffer_in2 = array.array("l", (2 for _ in range(NSAMP)))
 
@@ -226,12 +217,13 @@ led = digitalio.DigitalInOut(board.LED)
 led.direction = digitalio.Direction.OUTPUT
 #
 # main loop
+status=CLOSED
 while True:
-    ch=menu()
-    if ch==1:
-        status=CLOSED
-    elif ch==-1:
-        status=MUST_STOP
+    #ch=menu()
+    #if ch==1:
+    #    status=CLOSED
+    #elif ch==-1:
+    #    status=MUST_STOP
 
     buffer = i2s.last_read
     if len(buffer) > 0:
