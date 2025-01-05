@@ -97,15 +97,17 @@ def logger(data):
     return status
 
 def menu():
-    global have_serial
-    if supervisor.runtime.usb_connected:
-        have_serial=1
+    global have_serial,status
+    if have_serial==0:
+        if supervisor.runtime.usb_connected:
+            have_serial=1
+    if have_serial==1:
         if supervisor.runtime.serial_bytes_available:
             ch = input().strip()
             if ch == 's':
-                return 1
+                status=CLOSED
             elif ch == 'e':
-                return -1
+                status=MUST_STOP
             else:
                 print(len(ch),ch)
         return 0
@@ -130,7 +132,7 @@ loop_count = 0
 data_count = 0
 
 NCH = 1
-t_on = 60
+t_on = 20
 fsamp = 48000
 
 header=bytearray(512)
@@ -219,11 +221,7 @@ led.direction = digitalio.Direction.OUTPUT
 # main loop
 status=CLOSED
 while True:
-    #ch=menu()
-    #if ch==1:
-    #    status=CLOSED
-    #elif ch==-1:
-    #    status=MUST_STOP
+    menu()
 
     buffer = i2s.last_read
     if len(buffer) > 0:
