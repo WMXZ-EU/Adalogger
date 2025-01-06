@@ -12,10 +12,10 @@ import sdcardio
 import storage
 import microcontroller
 import rtc
-from lib import adafruit_ds3231
 from supervisor import runtime
 from digitalio import DigitalInOut,Direction
 
+from lib import adafruit_ds3231
 from lib import I2S
 
 def prep_header(num_channels, sampleRate, bitsPerSample):
