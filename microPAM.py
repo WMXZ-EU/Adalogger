@@ -2,9 +2,9 @@
 # circuitpython_setboard adafruit_feather_rp2040_adalogger
 # "c:\program files (x86)\teraterm\ttermpro.exe"
 
-import os
-import time
-
+from os import stat, mkdir, chdir, statvfs
+from time import time,monotonic,mktime, sleep, struct_time
+import gc
 import board
 import array
 import busio
@@ -13,9 +13,8 @@ import storage
 import microcontroller
 import rtc
 from lib import adafruit_ds3231
-import gc
-import supervisor
-import digitalio
+from supervisor import runtime
+from digitalio import DigitalInOut,Direction
 
 from lib import I2S
 
@@ -44,7 +43,7 @@ def update_header(nbytes):
 #----------------------------------------------------------
 def does_file_exist(filename):
     try:
-        status = os.stat(filename)
+        status = stat(filename)
         file_exists = True
     except OSError:
         file_exists = False
@@ -56,27 +55,27 @@ def logger(data):
 
     if status == CLOSED:
         # open new file
-        time_open = time.time()
+        time_open = time()
         t=r.datetime
         if t.tm_hour != old_hour:
             day_string = f"/sd/{t.tm_year:04d}{t.tm_mon:02d}{t.tm_mday:02d}"
             if not does_file_exist(day_string):
-                os.mkdir(day_string)
+                mkdir(day_string)
                 print('mkday: ',day_string)
-            os.chdir(day_string)
+            chdir(day_string)
             #
             Dir_string = f"{t.tm_hour:02d}"
             if not does_file_exist(Dir_string):
                 print('mkdir: ',Dir_string)
-                os.mkdir(Dir_string)
-            os.chdir(Dir_string)
+                mkdir(Dir_string)
+            chdir(Dir_string)
             old_hour=t.tm_hour
         #
         Date=f"{t.tm_year:04d}{t.tm_mon:02d}{t.tm_mday:02d}_{t.tm_hour:02d}{t.tm_min:02d}{t.tm_sec:02d}"
         fname="{}_{}.wav".format(uid_str,Date)
-        t1=time.monotonic()
+        t1=monotonic()
         wav = open(fname, "wb")
-        t1=time.monotonic()-t1
+        t1=monotonic()-t1
         pos = wav.seek(512)  # advance to first byte of Data section in WAV file
         total_bytes_written = 0
         if 1:
@@ -89,7 +88,7 @@ def logger(data):
         total_bytes_written += num_bytes_written
 
         # check to close
-        tmp_time=(time.time() % t_on )
+        tmp_time=(time() % t_on )
         if (tmp_time < old_time) | (status == MUST_STOP):
 
             # create header for WAV file and write to SD card
@@ -99,12 +98,12 @@ def logger(data):
             num_bytes_written = wav.write(wav_header)
 
             # close file
-            t1 = time.monotonic()
+            t1 = monotonic()
             wav.close()
-            t1=time.monotonic()-t1
+            t1=monotonic()-t1
             #
             num_samples = total_bytes_written // (4 * NCH)
-            print('\tnsamp',num_samples, num_samples/fsamp, data_count, loop_count, t1,'\t',data[0])
+            print('\tnsamp',num_samples, num_samples/fsamp, data_count, loop_count, t1,gc.mem_free(),'\t',data[0])
             data_count = 0
             loop_count = 0
 
@@ -119,10 +118,10 @@ def logger(data):
 def menu():
     global have_serial,status
     if have_serial==0:
-        if supervisor.runtime.usb_connected:
+        if runtime.usb_connected:
             have_serial=1
     if have_serial==1:
-        if supervisor.runtime.serial_bytes_available:
+        if runtime.serial_bytes_available:
             ch = input().strip()
             if ch == 's':
                 status=CLOSED
@@ -133,11 +132,11 @@ def menu():
         return 0
 
 def wait_for_Serial(secs):
-    t0=time.monotonic()
-    while (time.monotonic()-t0) < secs:
-        if supervisor.runtime.usb_connected:
-            time.sleep(1)
-            print(time.monotonic()-t0)
+    t0=monotonic()
+    while (monotonic()-t0) < secs:
+        if runtime.usb_connected:
+            sleep(1)
+            print(monotonic()-t0)
             return 1
     return 0
 
@@ -158,7 +157,7 @@ fsamp = 48000
 header=bytearray(512)
 prep_header(num_channels=NCH,sampleRate=fsamp,bitsPerSample=32)
 
-time_open = time.time()
+time_open = time()
 old_time=0
 old_hour=24
 
@@ -172,7 +171,7 @@ sdcard = sdcardio.SDCard(spi, board.SD_CS, baudrate=24000000)
 vfs = storage.VfsFat(sdcard)
 
 storage.mount(vfs, "/sd")
-os.chdir('/sd/logger')
+chdir('/sd')
 
 i2c = board.I2C()  # uses board.SCL and board.SDA
 ext_rtc = adafruit_ds3231.DS3231(i2c)
@@ -183,7 +182,7 @@ have_serial=wait_for_Serial(10)
 if have_serial>0:
     print('\n**************microPAM********************\n')
     #
-    fs_stat = os.statvfs('/sd')
+    fs_stat = statvfs('/sd')
     print("Disk size in MB",  fs_stat[0] * fs_stat[2] / 1024 / 1024)
     print("Free space in MB", fs_stat[0] * fs_stat[3] / 1024 / 1024)
     print(spi.frequency)
@@ -201,12 +200,12 @@ if have_serial>0:
     strx=input('enter time (dd-mm-yyyy HH:MM:SS): ')
     print(strx)
     if len(strx)>0:
-        datestr,timestr=strx.split()
+        datestr, timestr=strx.split()
         day,month,year=datestr.split('-')
         hour,minute,second=timestr.split(':')
         print(year,month,day,hour,minute,second)
-        td=time.struct_time([int(year),int(month),int(day),int(hour),int(minute),int(second),2,-1,-1])
-        datetime = time.mktime(td)
+        td=struct_time([int(year),int(month),int(day),int(hour),int(minute),int(second),2,-1,-1])
+        datetime = mktime(td)
         print(datetime)
         ext_rtc.datetime = td
 else:
@@ -236,8 +235,8 @@ buffer_in2 = array.array("l", (2 for _ in range(NSAMP)))
 
 i2s.background_read(loop=buffer_in1, loop2=buffer_in2)
 
-led = digitalio.DigitalInOut(board.LED)
-led.direction = digitalio.Direction.OUTPUT
+led = DigitalInOut(board.LED)
+led.direction = Direction.OUTPUT
 #
 # main loop
 status=CLOSED
