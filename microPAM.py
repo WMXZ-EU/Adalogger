@@ -51,7 +51,7 @@ def does_file_exist(filename):
     return file_exists
 
 def logger(data):
-    global status, time_open, loop_count, data_count, total_bytes_written,old_time, old_hour
+    global status, time_open, loop_count, data_count, total_bytes_written, old_time, old_hour
     global wav
 
     if status == CLOSED:
@@ -60,15 +60,17 @@ def logger(data):
         t=r.datetime
         if t.tm_hour != old_hour:
             day_string = f"/sd/{t.tm_year:04d}{t.tm_mon:02d}{t.tm_mday:02d}"
-            if does_file_exist((day_string))==False:
+            if not does_file_exist(day_string):
                 os.mkdir(day_string)
                 print('mkday: ',day_string)
-            Dir_string = f"/sd/{t.tm_year:04d}{t.tm_mon:02d}{t.tm_mday:02d}/{t.tm_hour:02d}"
-            if does_file_exist((Dir_string))==False:
+            os.chdir(day_string)
+            #
+            Dir_string = f"{t.tm_hour:02d}"
+            if not does_file_exist(Dir_string):
                 print('mkdir: ',Dir_string)
                 os.mkdir(Dir_string)
             os.chdir(Dir_string)
-        old_hour=t.tm_hour
+            old_hour=t.tm_hour
         #
         Date=f"{t.tm_year:04d}{t.tm_mon:02d}{t.tm_mday:02d}_{t.tm_hour:02d}{t.tm_min:02d}{t.tm_sec:02d}"
         fname="{}_{}.wav".format(uid_str,Date)
