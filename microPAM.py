@@ -103,6 +103,7 @@ def logger(data):
             t1=monotonic()-t1
             #
             num_samples = total_bytes_written // (4 * NCH)
+            gc.collect()
             print('\tnsamp',num_samples, num_samples/fsamp, data_count, loop_count, t1,gc.mem_free(),'\t',data[0])
             data_count = 0
             loop_count = 0
@@ -250,7 +251,6 @@ while True:
             logger(buffer)
             led.value = False
             data_count += 1
-            if data_count%100==0: gc.collect()
     loop_count += 1
 #
 # end of program
