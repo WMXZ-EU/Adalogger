@@ -42,15 +42,34 @@ def update_header(nbytes):
     header[508:512] = nbytes.to_bytes(4, "little")
 
 #----------------------------------------------------------
+def does_file_exist(filename):
+    try:
+        status = os.stat(filename)
+        file_exists = True
+    except OSError:
+        file_exists = False
+    return file_exists
 
 def logger(data):
-    global status, time_open, loop_count, data_count, total_bytes_written,old_time
+    global status, time_open, loop_count, data_count, total_bytes_written,old_time, old_hour
     global wav
 
     if status == CLOSED:
         # open new file
         time_open = time.time()
         t=r.datetime
+        if t.tm_hour != old_hour:
+            day_string = f"/sd/{t.tm_year:04d}{t.tm_mon:02d}{t.tm_mday:02d}"
+            if does_file_exist((day_string))==False:
+                os.mkdir(day_string)
+                print('mkday: ',day_string)
+            Dir_string = f"/sd/{t.tm_year:04d}{t.tm_mon:02d}{t.tm_mday:02d}/{t.tm_hour:02d}"
+            if does_file_exist((Dir_string))==False:
+                print('mkdir: ',Dir_string)
+                os.mkdir(Dir_string)
+            os.chdir(Dir_string)
+        old_hour=t.tm_hour
+        #
         Date=f"{t.tm_year:04d}{t.tm_mon:02d}{t.tm_mday:02d}_{t.tm_hour:02d}{t.tm_min:02d}{t.tm_sec:02d}"
         fname="{}_{}.wav".format(uid_str,Date)
         t1=time.monotonic()
@@ -83,8 +102,7 @@ def logger(data):
             t1=time.monotonic()-t1
             #
             num_samples = total_bytes_written // (4 * NCH)
-            print('\t'
-                  'nsamp',num_samples, num_samples/fsamp, data_count, loop_count, t1,'\t',data[0])
+            print('\tnsamp',num_samples, num_samples/fsamp, data_count, loop_count, t1,'\t',data[0])
             data_count = 0
             loop_count = 0
 
@@ -140,6 +158,7 @@ prep_header(num_channels=NCH,sampleRate=fsamp,bitsPerSample=32)
 
 time_open = time.time()
 old_time=0
+old_hour=24
 
 wav: None
 total_bytes_written: int = 0
