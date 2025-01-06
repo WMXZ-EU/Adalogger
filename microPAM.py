@@ -223,7 +223,7 @@ uid=microcontroller.cpu.uid
 uid_str=f"{uid[-3]:02X}{uid[-2]:02X}{uid[-1]:02X}"
 #
 
-i2s = I2S.i2s_ICS43434(fs=fsamp)
+i2s = I2S.i2s_ICS43434(fs=fsamp, nbits=32, in_pin=board.D11, bclk_pin=board.D9)
 
 if have_serial>0:
     print()

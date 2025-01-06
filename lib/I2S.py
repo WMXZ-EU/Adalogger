@@ -2,9 +2,9 @@ import board
 import rp2pio
 import adafruit_pioasm
 
-def i2s_ICS43434(fs=48000,nbits=32):
-    in_pin   = board.D11
-    bclk_pin = board.D9
+def i2s_ICS43434(fs=48000,nbits=32,in_pin=board.D11, bclk_pin=board.D9):
+#    in_pin   = board.D11
+#    bclk_pin = board.D9
 
     i2s_clock = fs * (2 * nbits)
     pio_clock = 2 * i2s_clock
