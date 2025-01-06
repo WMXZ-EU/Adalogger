@@ -55,6 +55,7 @@ def logger(data):
 
     if status == CLOSED:
         # open new file
+        led.value = True
         time_open = time()
         t=r.datetime
         if t.tm_hour != old_hour:
@@ -81,6 +82,7 @@ def logger(data):
         if 1:
             print('opening:',fname,t1,end=' ')
         status = RECORDING
+        led.value = False
 
     if (status == RECORDING) | (status == MUST_STOP):
         # write data
@@ -153,7 +155,7 @@ data_count = 0
 
 NCH = 1
 t_on = 20
-fsamp = 48000
+fsamp = 96000
 
 header=bytearray(512)
 prep_header(num_channels=NCH,sampleRate=fsamp,bitsPerSample=32)
@@ -247,9 +249,7 @@ while True:
     buffer = i2s.last_read
     if len(buffer) > 0:
         if status != STOPPED:
-            led.value = True
             logger(buffer)
-            led.value = False
             data_count += 1
     loop_count += 1
 #
