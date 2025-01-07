@@ -202,7 +202,7 @@ if have_serial>0:
     print('Is time of ds3231 correct? If yes press return, otherwise')
     strx=input('enter time (dd-mm-yyyy HH:MM:SS): ')
     print(strx)
-    if len(strx)>0:
+    if len(strx)>10:
         datestr, timestr=strx.split()
         day,month,year=datestr.split('-')
         hour,minute,second=timestr.split(':')
@@ -232,12 +232,15 @@ if have_serial>0:
     print(f"#             Temperature {microcontroller.cpu.temperature:3.1f}")
     print()
 
+# allocate ping-pong buffers
 NSAMP= 9600
 buffer_in1 = array.array("l", (1 for _ in range(NSAMP)))
 buffer_in2 = array.array("l", (2 for _ in range(NSAMP)))
 
+# start I2S use ping-pong buffer
 i2s.background_read(loop=buffer_in1, loop2=buffer_in2)
 
+# led is used to indicate disk activity (lights up during file opening)
 led = DigitalInOut(board.LED)
 led.direction = Direction.OUTPUT
 #

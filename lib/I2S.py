@@ -16,9 +16,10 @@ def i2s_ICS43434(fs=48000,nbits=32,in_pin=board.D11, bclk_pin=board.D9):
         .side_set 2   ; 0 = bclk, 1=wclk
         ;                           +----- WCLK
         ;                           |+---- BCLK
-            set x, 29        side 0b00 ; set bit count and WCLK
+        init:
+            nop              side 0b00 ; set CLK and WCLK
             nop              side 0b01
-            nop              side 0b00
+            set x, 29        side 0b00 ; set bit count
         left:
             in pins, 1       side 0b01
             jmp x--, left    side 0b00
@@ -36,11 +37,12 @@ def i2s_ICS43434(fs=48000,nbits=32,in_pin=board.D11, bclk_pin=board.D9):
         .side_set 2   ; 0 = bclk, 1=wclk
         ;                           +----- WCLK
         ;                           |+---- BCLK
-            set x, 28        side 0b00 ; set bit count and WCLK
+        init:
+            nop              side 0b00 ; set CLK and WCLK
             nop              side 0b01
             nop              side 0b00
             nop              side 0b01
-            nop              side 0b00
+            set x,28         side 0b00 ; set bit count
         left:
             in pins, 1       side 0b01
             jmp x--, left    side 0b00
