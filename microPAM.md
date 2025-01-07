@@ -35,26 +35,27 @@ The mean code of the microPAM logger is a simple loop:
 
     while True:
         ch=menu()
-        if ch==1:
-            status=CLOSED
-        elif ch==-1:
-            status=MUST_STOP
     
         buffer = i2s.last_read
         if len(buffer) > 0:
             if status != STOPPED:
-                led.value = True
                 logger(buffer)
-                led.value = False
                 data_count += 1
-                if (data_count%100==0): gc.collect()
         loop_count += 1
 
-A simple User Interface (UI) allows to flag the acquisition to start or  to stop. 
+The acquisition is controlled by four states (CLOSED,RUNNING,MUST_STOP, STOPPED). 
+If CLOSED a call to logger(buffer) opens a new file and transitions the status to RECORDING.
+While recording the data are written to disk, and the time is checked if closing is required. 
+If this is the case, the file is closed and status set to CLOSED. 
+In case user requested to stop the acquisition, status is set to STOPPED.
+ 
+A simple User Interface (UI) allows to flag the acquisition to start or  to stop.  
+Starting the acquisition is done by setting the status to CLOSED (User input 's'<cs>)
+Stopping the acquisition is done by setting the status to MUST_STOP (User input 'e'<cr>).
 To keep system as simple as possible, no more user interaction is implemented.
 After checking if there are new data available and if the acquisition is not stopped, data are saved to disk.
 
-While writing to disk, the LED light up to indicate disk activity. Also, the garbage collector is run regularly.
+While opening a file, the LED light up to indicate disk activity.
 
 ## Logger function
 The **logger(buffer)** function handles  all disk related operation, like file name creation, file opening, writing 
@@ -62,3 +63,17 @@ and closing.
 
 ## Power consumption
 Running the RP2040 at 96 MHz the overall consumption is about 250 mW. 
+
+## Filing latencies
+Opening of new files on disk, requires the file system (FS) to scan the directory for existing files. 
+This will need some time that is proportional to the existing file entries. 
+Actually, about 0.3 ms/file is required at a MCU speed of 96 MHz.
+
+To keep this latency in limits 2 levels of directories are implemented. 
+Top level daily entry, 2nd level individual hours holding all the files in this hour.
+Recording 1 minute files, there will be 60 entries and the maximal time to open a new file will be 18 ms.
+
+The data are stored as 32 bit Wav files, whereby the WAV header is extended to 512 bytes by using a JUNK chunk, 
+to facilitate microSD card access performance.
+
+The filename contains 3-byte UID - date and time.
