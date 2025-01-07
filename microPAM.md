@@ -6,6 +6,7 @@
   * [Main Loop](#main-loop)
   * [Logger function](#logger-function)
   * [Power consumption](#power-consumption)
+  * [Filing latencies](#filing-latencies)
 <!-- TOC -->
 ## Overview
 This is a Passive Acoustic Monitor (PAM) using Adafruit PR2040 Adalogger and ICS43434 I2S MEMS microphones.
