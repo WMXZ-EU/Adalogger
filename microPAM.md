@@ -35,7 +35,7 @@ that needs a special PIO script.
 The mean code of the microPAM logger is a simple loop:
 
     while True:
-        ch=menu()
+        menu()
     
         buffer = i2s.last_read
         if len(buffer) > 0:
@@ -63,14 +63,14 @@ The **logger(buffer)** function handles  all disk related operation, like file n
 and closing.
 
 ## Power consumption
-Running the RP2040 at 96 MHz the overall consumption is about 250 mW. 
+Running the RP2040 at 96 MHz the overall consumption is about 250 mW (50 mA @ 5V). 
 
 ## Filing latencies
 Opening of new files on disk, requires the file system (FS) to scan the directory for existing files. 
 This will need some time that is proportional to the existing file entries. 
 Actually, about 0.3 ms/file is required at a MCU speed of 96 MHz.
 
-To keep this latency in limits 2 levels of directories are implemented. 
+To keep this latency in limits, 2 levels of directories are implemented. 
 Top level daily entry, 2nd level individual hours holding all the files in this hour.
 Recording 1 minute files, there will be 60 entries and the maximal time to open a new file will be 18 ms.
 

@@ -58,22 +58,23 @@ def logger(data):
         led.value = True
         time_open = time()
         t=r.datetime
+        date_str =f"{t.tm_year:04d}{t.tm_mon:02d}{t.tm_mday:02d}"
+        time_str =f"{t.tm_hour:02d}{t.tm_min:02d}{t.tm_sec:02d}"
         if t.tm_hour != old_hour:
-            day_string = f"/sd/{t.tm_year:04d}{t.tm_mon:02d}{t.tm_mday:02d}"
-            if not does_file_exist(day_string):
-                mkdir(day_string)
-                print('mkday: ',day_string)
-            chdir(day_string)
+            Dir0_str = f"/sd/{uid_str}_{date_str}"
+            if not does_file_exist(Dir0_str):
+                mkdir(Dir0_str)
+                print('mkday: ',Dir0_str)
+            chdir(Dir0_str)
             #
-            Dir_string = f"{t.tm_hour:02d}"
-            if not does_file_exist(Dir_string):
-                print('mkdir: ',Dir_string)
-                mkdir(Dir_string)
-            chdir(Dir_string)
+            Dir1_str = f"{t.tm_hour:02d}"
+            if not does_file_exist(Dir1_str):
+                print('mkdir: ',Dir1_str)
+                mkdir(Dir1_str)
+            chdir(Dir1_str)
             old_hour=t.tm_hour
         #
-        Date=f"{t.tm_year:04d}{t.tm_mon:02d}{t.tm_mday:02d}_{t.tm_hour:02d}{t.tm_min:02d}{t.tm_sec:02d}"
-        fname="{}_{}.wav".format(uid_str,Date)
+        fname=f"{uid_str}_{date_str}_{time_str}.wav"
         t1=monotonic()
         wav = open(fname, "wb")
         t1=monotonic()-t1
@@ -106,7 +107,8 @@ def logger(data):
             #
             num_samples = total_bytes_written // (4 * NCH)
             gc.collect()
-            print('\tnsamp',num_samples, num_samples/fsamp, data_count, loop_count, t1,gc.mem_free(),'\t',data[0])
+            print('\tnsamp',num_samples, num_samples/fsamp, data_count, loop_count, t1,gc.mem_free(),
+                  '\t',hex(data[0]))
             data_count = 0
             loop_count = 0
 
@@ -137,8 +139,8 @@ def menu():
 def wait_for_Serial(secs):
     t0=monotonic()
     while (monotonic()-t0) < secs:
-        if runtime.usb_connected:
-            sleep(1)
+        if runtime.serial_connected:
+            sleep(0.1)
             print(monotonic()-t0)
             return 1
     return 0
@@ -154,7 +156,7 @@ loop_count = 0
 data_count = 0
 
 NCH = 1
-t_on = 20
+t_on = 60
 fsamp = 96000
 
 header=bytearray(512)
@@ -203,9 +205,9 @@ if have_serial>0:
     strx=input('enter time (dd-mm-yyyy HH:MM:SS): ')
     print(strx)
     if len(strx)>10:
-        datestr, timestr=strx.split()
-        day,month,year=datestr.split('-')
-        hour,minute,second=timestr.split(':')
+        datestr, timestr = strx.split()
+        day,month,year = datestr.split('-')
+        hour,minute,second = timestr.split(':')
         print(year,month,day,hour,minute,second)
         td=struct_time([int(year),int(month),int(day),int(hour),int(minute),int(second),2,-1,-1])
         datetime = mktime(td)
@@ -244,16 +246,19 @@ i2s.background_read(loop=buffer_in1, loop2=buffer_in2)
 led = DigitalInOut(board.LED)
 led.direction = Direction.OUTPUT
 #
-# main loop
-status=CLOSED
-while True:
-    menu()
+def main():
+    global status,data_count,loop_count
+    # main loop
+    status=CLOSED
+    while True:
+        menu()
 
-    buffer = i2s.last_read
-    if len(buffer) > 0:
-        if status != STOPPED:
-            logger(buffer)
-            data_count += 1
-    loop_count += 1
+        buffer = i2s.last_read
+        if len(buffer) > 0:
+            if status != STOPPED:
+                logger(buffer)
+                data_count += 1
+        loop_count += 1
 #
+main()
 # end of program
