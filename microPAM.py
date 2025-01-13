@@ -78,7 +78,7 @@ def logger(data):
         t1=monotonic()
         wav = open(fname, "wb")
         t1=monotonic()-t1
-        pos = wav.seek(512)  # advance to first byte of Data section in WAV file
+        pos = wav.seek(512)  # position to first byte of Data section in WAV file
         total_bytes_written = 0
         if 1:
             print('opening:',fname,t1,end=' ')
@@ -107,8 +107,9 @@ def logger(data):
             #
             num_samples = total_bytes_written // (4 * NCH)
             gc.collect()
-            print('\tnsamp',num_samples, num_samples/fsamp, data_count, loop_count, t1,gc.mem_free(),
-                  '\t',hex(data[0]))
+            if 1:
+                print('\tnsamp',num_samples, num_samples/fsamp, data_count, loop_count, t1, gc.mem_free(),
+                      '\t',hex(data[0]))
             data_count = 0
             loop_count = 0
 
@@ -121,9 +122,9 @@ def logger(data):
     return status
 
 def menu():
-    global have_serial,status
+    global have_serial, status
     if have_serial==0:
-        if runtime.usb_connected:
+        if runtime.serial_connected:
             have_serial=1
     if have_serial==1:
         if runtime.serial_bytes_available:
@@ -134,7 +135,6 @@ def menu():
                 status=MUST_STOP
             else:
                 print(len(ch),ch)
-        return 0
 
 def wait_for_Serial(secs):
     t0=monotonic()
@@ -163,8 +163,8 @@ header=bytearray(512)
 prep_header(num_channels=NCH,sampleRate=fsamp,bitsPerSample=32)
 
 time_open = time()
-old_time=0
-old_hour=24
+old_time:int = 0
+old_hour:int = 24
 
 wav: None
 total_bytes_written: int = 0
