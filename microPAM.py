@@ -50,7 +50,9 @@ def does_file_exist(filename):
     return file_exists
 
 def logger(data):
-    global status, time_open, loop_count, data_count, total_bytes_written, old_time, old_hour
+    global status, loop_count, data_count, total_bytes_written
+    global time_open, old_time, old_hour
+    global led
     global wav
 
     if status == CLOSED:
@@ -87,8 +89,10 @@ def logger(data):
 
     if (status == RECORDING) | (status == MUST_STOP):
         # write data
+        led.value = True
         num_bytes_written = wav.write(data)
         total_bytes_written += num_bytes_written
+        led.value = False
 
         # check to close
         tmp_time=(time() % t_on )
@@ -121,6 +125,34 @@ def logger(data):
         old_time = tmp_time
     return status
 
+def update_time():
+    global r, ext_rtc
+    # check RTC clocks
+    rd=r.datetime
+    ldatestr=f"{rd.tm_mday:02d}-{rd.tm_mon:02d}-{rd.tm_year:04d}"
+    ltimestr=f"{rd.tm_hour:02d}:{rd.tm_min:02d}:{rd.tm_sec:02d}"
+    print(' local: ',ldatestr,' ',ltimestr)
+
+    dt= ext_rtc.datetime
+    datestr=f"{dt.tm_mday:02d}-{dt.tm_mon:02d}-{dt.tm_year:04d}"
+    timestr=f"{dt.tm_hour:02d}:{dt.tm_min:02d}:{dt.tm_sec:02d}"
+    print('ds3231: ', datestr,' ',timestr)
+    print('Is time of ds3231 correct? If yes press return, otherwise')
+    strx=input('enter time (dd-mm-yyyy HH:MM:SS): ')
+    print(strx)
+    if len(strx)>10:
+        datestr, timestr = strx.split()
+        day,month,year = datestr.split('-')
+        hour,minute,second = timestr.split(':')
+        print(year,month,day,hour,minute,second)
+        tarray=[int(year),int(month),int(day),int(hour),int(minute),int(second),2,-1,-1]
+        td=struct_time(tarray)
+        datetime = mktime(td)
+        print(datetime)
+        ext_rtc.datetime = td
+    # synchronize rtc
+    r.datetime=ext_rtc.datetime
+
 def menu():
     global have_serial, status
     if have_serial==0:
@@ -133,6 +165,8 @@ def menu():
                 status=CLOSED
             elif ch == 'e':
                 status=MUST_STOP
+            elif (ch == 'c') & (status == STOPPED):
+                update_time()
             else:
                 print(len(ch),ch)
 
@@ -157,7 +191,7 @@ data_count = 0
 
 NCH = 1
 t_on = 60
-fsamp = 96000
+fsamp = 48000
 
 header=bytearray(512)
 prep_header(num_channels=NCH,sampleRate=fsamp,bitsPerSample=32)
@@ -193,26 +227,6 @@ if have_serial>0:
     print(spi.frequency)
     print()
     #
-    # check RTC clocks
-    rd=r.datetime
-    ldatestr=f"{rd.tm_mday:02d}-{rd.tm_mon:02d}-{rd.tm_year:04d} {rd.tm_hour:02d}:{rd.tm_min:02d}:{rd.tm_sec:02d}"
-    print(' local: ',ldatestr)
-
-    dt= ext_rtc.datetime
-    datestr=f"{dt.tm_mday:02d}-{dt.tm_mon:02d}-{dt.tm_year:04d} {dt.tm_hour:02d}:{dt.tm_min:02d}:{dt.tm_sec:02d}"
-    print('ds3231: ', datestr)
-    print('Is time of ds3231 correct? If yes press return, otherwise')
-    strx=input('enter time (dd-mm-yyyy HH:MM:SS): ')
-    print(strx)
-    if len(strx)>10:
-        datestr, timestr = strx.split()
-        day,month,year = datestr.split('-')
-        hour,minute,second = timestr.split(':')
-        print(year,month,day,hour,minute,second)
-        td=struct_time([int(year),int(month),int(day),int(hour),int(minute),int(second),2,-1,-1])
-        datetime = mktime(td)
-        print(datetime)
-        ext_rtc.datetime = td
 else:
     status=CLOSED
 
