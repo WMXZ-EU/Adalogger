@@ -18,6 +18,8 @@ from digitalio import DigitalInOut,Direction
 from lib import adafruit_ds3231
 from lib import I2S
 
+import alarm
+
 def prep_header(num_channels, sampleRate, bitsPerSample):
     header[:4] =  bytes("RIFF", "ascii")  # (4byte) Marks file as RIFF
     header[4:8] = (512-2*4).to_bytes(4, "little" )  # (4byte) File size in bytes
@@ -52,6 +54,7 @@ def does_file_exist(filename):
 def logger(data):
     global status, loop_count, data_count, total_bytes_written
     global time_open, old_time, old_hour
+    global t_on,t_acq,t_rep
     global led
     global wav
 
@@ -122,6 +125,7 @@ def logger(data):
                 status=STOPPED
             else:
                 status = CLOSED
+                hibernate(t_acq,t_rep)
         old_time = tmp_time
     return status
 
@@ -152,6 +156,22 @@ def update_time():
         ext_rtc.datetime = td
     # synchronize rtc
     r.datetime=ext_rtc.datetime
+
+def hibernate(t_acq,t_rep):
+    # set ext_rtc alarm
+    t1=ext_rtc.datetime
+    tmin=t1.tm_min+(t1.tm_sec+10)//60
+    print(t1.tm_min,t1.tm_sec, tmin, tmin%t_rep, t_acq, t_rep)
+    if tmin%t_rep<t_acq:
+        return
+    #
+    tmin= ((tmin//t_rep+1)*t_rep)%60  #trigger every 'dmin' minutes
+    t2=struct_time([0,0,0,0,tmin,0,-1,-1,-1])
+    ext_rtc.alarm1=[t2,'hourly']
+    ext_rtc.alarm1_interrupt=True
+    ext_rtc.alarm1_status=False
+    pin_alarm = alarm.pin.PinAlarm(pin=board.A2, value=False, edge=True, pull=True)
+    alarm.exit_and_deep_sleep_until_alarms(pin_alarm)
 
 def menu():
     global have_serial, status
@@ -190,7 +210,9 @@ loop_count = 0
 data_count = 0
 
 NCH = 1
-t_on = 60
+t_on = 60   # seconds
+t_acq = 3   # minutes
+t_rep = 5   # minutes
 fsamp = 48000
 
 header=bytearray(512)
@@ -203,7 +225,7 @@ old_hour:int = 24
 wav: None
 total_bytes_written: int = 0
 
-microcontroller.cpu.frequency=96_000_000
+microcontroller.cpu.frequency=48_000_000
 # Connect to the card and mount the filesystem.
 spi = busio.SPI(board.SD_CLK, board.SD_MOSI, board.SD_MISO)
 sdcard = sdcardio.SDCard(spi, board.SD_CS, baudrate=24000000)
@@ -234,6 +256,7 @@ else:
 #===========================================================================================
 # synchronize rtc
 r.datetime=ext_rtc.datetime
+print(r.datetime)
 #
 uid=microcontroller.cpu.uid
 uid_str=f"{uid[-3]:02X}{uid[-2]:02X}{uid[-1]:02X}"
@@ -275,4 +298,5 @@ def main():
         loop_count += 1
 #
 main()
+
 # end of program
