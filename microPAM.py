@@ -161,7 +161,7 @@ def hibernate(t_acq,t_rep):
     # set ext_rtc alarm
     t1=ext_rtc.datetime
     tmin=t1.tm_min+(t1.tm_sec+10)//60
-    print(t1.tm_min,t1.tm_sec, tmin, tmin%t_rep, t_acq, t_rep)
+    #print(t1.tm_min,t1.tm_sec, tmin, tmin%t_rep, t_acq, t_rep)
     if tmin%t_rep<t_acq:
         return
     #
@@ -256,7 +256,6 @@ else:
 #===========================================================================================
 # synchronize rtc
 r.datetime=ext_rtc.datetime
-print(r.datetime)
 #
 uid=microcontroller.cpu.uid
 uid_str=f"{uid[-3]:02X}{uid[-2]:02X}{uid[-1]:02X}"
