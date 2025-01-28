@@ -20,6 +20,16 @@ from lib import I2S
 
 import alarm
 
+#------------------------------------
+# acquisition constants
+#------------------------------------
+t_on = 60   # seconds
+t_acq = 3   # minutes (for continuous recording set t_acq > t_rep=
+t_rep = 5   # minutes
+
+#------------------------------------
+# implementation
+#------------------------------------
 def prep_header(num_channels, sampleRate, bitsPerSample):
     header[:4] =  bytes("RIFF", "ascii")  # (4byte) Marks file as RIFF
     header[4:8] = (512-2*4).to_bytes(4, "little" )  # (4byte) File size in bytes
@@ -160,7 +170,7 @@ def update_time():
 def hibernate(t_acq,t_rep):
     # set ext_rtc alarm
     t1=ext_rtc.datetime
-    tmin=t1.tm_min+(t1.tm_sec+10)//60
+    tmin=t1.tm_min+(t1.tm_sec+2)//60
     #print(t1.tm_min,t1.tm_sec, tmin, tmin%t_rep, t_acq, t_rep)
     if tmin%t_rep<t_acq:
         return
@@ -210,9 +220,6 @@ loop_count = 0
 data_count = 0
 
 NCH = 1
-t_on = 60   # seconds
-t_acq = 3   # minutes
-t_rep = 5   # minutes
 fsamp = 48000
 
 header=bytearray(512)
