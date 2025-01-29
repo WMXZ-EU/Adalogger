@@ -26,11 +26,12 @@ import alarm
 t_on = 60   # seconds
 t_acq = 3   # minutes (for continuous recording set t_acq > t_rep=
 t_rep = 5   # minutes
-
+SerWait = 5 # seconds to wait for Serial port (interactive)
 #------------------------------------
 # implementation
 #------------------------------------
 def prep_header(num_channels, sampleRate, bitsPerSample):
+    global header
     header[:4] =  bytes("RIFF", "ascii")  # (4byte) Marks file as RIFF
     header[4:8] = (512-2*4).to_bytes(4, "little" )  # (4byte) File size in bytes
                                                                     # excluding this and RIFF marker
@@ -49,6 +50,7 @@ def prep_header(num_channels, sampleRate, bitsPerSample):
     header[508:512] =  (0).to_bytes(4, "little")  # (4byte) Data size in bytes
 
 def update_header(nbytes):
+    global header
     header[4:8] = (nbytes + 512 - 2 * 4).to_bytes(4, "little")
     header[508:512] = nbytes.to_bytes(4, "little")
 
@@ -67,6 +69,7 @@ def logger(data):
     global t_on,t_acq,t_rep
     global led
     global wav
+    global header
 
     if status == CLOSED:
         # open new file
@@ -95,7 +98,7 @@ def logger(data):
         t1=monotonic()-t1
         pos = wav.seek(512)  # position to first byte of Data section in WAV file
         total_bytes_written = 0
-        if 1:
+        if have_serial==1:
             print('opening:',fname,t1,end=' ')
         status = RECORDING
         led.value = False
@@ -110,6 +113,7 @@ def logger(data):
         # check to close
         tmp_time=(time() % t_on )
         if (tmp_time < old_time) | (status == MUST_STOP):
+            old_time = tmp_time
 
             # create header for WAV file and write to SD card
             update_header(total_bytes_written)
@@ -124,9 +128,9 @@ def logger(data):
             #
             num_samples = total_bytes_written // (4 * NCH)
             gc.collect()
-            if 1:
-                print('\tnsamp',num_samples, num_samples/fsamp, data_count, loop_count, t1, gc.mem_free(),
-                      '\t',hex(data[0]))
+            if have_serial==1:
+                print('\tnsamp',num_samples, num_samples/fsamp, data_count, loop_count,
+                      t1, gc.mem_free(),'\t',hex(data[0]))
             data_count = 0
             loop_count = 0
 
@@ -136,7 +140,6 @@ def logger(data):
             else:
                 status = CLOSED
                 hibernate(t_acq,t_rep)
-        old_time = tmp_time
     return status
 
 def update_time():
@@ -168,6 +171,7 @@ def update_time():
     r.datetime=ext_rtc.datetime
 
 def hibernate(t_acq,t_rep):
+    global ext_rtc
     # set ext_rtc alarm
     t1=ext_rtc.datetime
     tmin=t1.tm_min+(t1.tm_sec+2)//60
@@ -209,7 +213,13 @@ def wait_for_Serial(secs):
             return 1
     return 0
 
-#============================== Setup ===============================================
+#====================== Setup ====================================
+# general constants
+NCH = 1
+fsamp = 48000
+microcontroller.cpu.frequency=48_000_000
+
+#-----------------------------------------------------------------
 CLOSED = 0
 RECORDING = 1
 MUST_STOP = 2
@@ -218,9 +228,6 @@ status = STOPPED
 
 loop_count = 0
 data_count = 0
-
-NCH = 1
-fsamp = 48000
 
 header=bytearray(512)
 prep_header(num_channels=NCH,sampleRate=fsamp,bitsPerSample=32)
@@ -232,7 +239,6 @@ old_hour:int = 24
 wav: None
 total_bytes_written: int = 0
 
-microcontroller.cpu.frequency=48_000_000
 # Connect to the card and mount the filesystem.
 spi = busio.SPI(board.SD_CLK, board.SD_MOSI, board.SD_MISO)
 sdcard = sdcardio.SDCard(spi, board.SD_CS, baudrate=24000000)
@@ -241,14 +247,20 @@ vfs = storage.VfsFat(sdcard)
 storage.mount(vfs, "/sd")
 chdir('/sd')
 
+# connect to external RTC
 i2c = board.I2C()  # uses board.SCL and board.SDA
 ext_rtc = adafruit_ds3231.DS3231(i2c)
 
 r = rtc.RTC()
 
-have_serial=wait_for_Serial(10)
+have_serial=wait_for_Serial(SerWait)
 if have_serial>0:
     print('\n**************microPAM********************\n')
+    #
+    tx= ext_rtc.datetime
+    datestr=f"{tx.tm_mday:02d}-{tx.tm_mon:02d}-{tx.tm_year:04d}"
+    timestr=f"{tx.tm_hour:02d}:{tx.tm_min:02d}:{tx.tm_sec:02d}"
+    print('Now: ', datestr,' ',timestr)
     #
     fs_stat = statvfs('/sd')
     print("Disk size in MB",  fs_stat[0] * fs_stat[2] / 1024 / 1024)
@@ -277,7 +289,12 @@ if have_serial>0:
     print(f"#             Temperature {microcontroller.cpu.temperature:3.1f}")
     print()
 
-# allocate ping-pong buffers
+# led is used to indicate disk activity (lights up during file opening)
+led = DigitalInOut(board.LED)
+led.direction = Direction.OUTPUT
+#
+
+# allocate ping-pong buffers for I2S
 NSAMP= 9600
 buffer_in1 = array.array("l", (1 for _ in range(NSAMP)))
 buffer_in2 = array.array("l", (2 for _ in range(NSAMP)))
@@ -285,17 +302,13 @@ buffer_in2 = array.array("l", (2 for _ in range(NSAMP)))
 # start I2S use ping-pong buffer
 i2s.background_read(loop=buffer_in1, loop2=buffer_in2)
 
-# led is used to indicate disk activity (lights up during file opening)
-led = DigitalInOut(board.LED)
-led.direction = Direction.OUTPUT
-#
 def main():
     global status,data_count,loop_count
     # main loop
     status=CLOSED
     while True:
         menu()
-
+        #
         buffer = i2s.last_read
         if len(buffer) > 0:
             if status != STOPPED:
