@@ -14,8 +14,8 @@ def i2s_ICS43434(fs=48000,nbits=32,in_pin=board.D11, bclk_pin=board.D9):
         i2s_input = """
         .program pio_i2s_in 
         .side_set 2   ; 0 = bclk, 1=wclk
-        ;                           +----- WCLK
-        ;                           |+---- BCLK
+        ;                           v----- WCLK
+        ;                           |v---- BCLK
         init:
             nop              side 0b00 ; set CLK and WCLK
             nop              side 0b01
@@ -35,8 +35,8 @@ def i2s_ICS43434(fs=48000,nbits=32,in_pin=board.D11, bclk_pin=board.D9):
         i2s_input = """
         .program pio_i2s_in 
         .side_set 2   ; 0 = bclk, 1=wclk
-        ;                           +----- WCLK
-        ;                           |+---- BCLK
+        ;                           v----- WCLK
+        ;                           |v---- BCLK
         init:
             nop              side 0b00 ; set CLK and WCLK
             nop              side 0b01
