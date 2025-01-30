@@ -19,14 +19,14 @@ from lib import adafruit_ds3231
 from lib import I2S
 
 import alarm
+from micropython import const
 
 #------------------------------------
 # acquisition constants
 #------------------------------------
-t_on = 60   # seconds
-t_acq = 3   # minutes (for continuous recording set t_acq > t_rep=
-t_rep = 5   # minutes
-SerWait = 5 # seconds to wait for Serial port (interactive)
+t_on = const(60)   # seconds
+t_acq = const(3)   # minutes (for continuous recording set t_acq > t_rep=
+t_rep = const(5)   # minutes
 #------------------------------------
 # implementation
 #------------------------------------
@@ -215,6 +215,8 @@ def wait_for_Serial(secs):
 
 #====================== Setup ====================================
 # general constants
+SerWait = 5 # seconds to wait for Serial port (interactive)
+
 NCH = 1
 fsamp = 48000
 microcontroller.cpu.frequency=48_000_000
