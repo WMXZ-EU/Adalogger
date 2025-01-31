@@ -214,7 +214,7 @@ def wait_for_Serial(secs):
     return 0
 
 #====================== Setup ====================================
-# general constants
+# general constants not to be changed frequently
 SerWait = 5 # seconds to wait for Serial port (interactive)
 
 NCH = 1
@@ -222,10 +222,10 @@ fsamp = 48000
 microcontroller.cpu.frequency=48_000_000
 
 #-----------------------------------------------------------------
-CLOSED = 0
-RECORDING = 1
-MUST_STOP = 2
-STOPPED = 3
+CLOSED = const(0)
+RECORDING = const(1)
+MUST_STOP = const(2)
+STOPPED = const(3)
 status = STOPPED
 
 loop_count = 0
@@ -304,7 +304,7 @@ buffer_in2 = array.array("l", (2 for _ in range(NSAMP)))
 # start I2S use ping-pong buffer
 i2s.background_read(loop=buffer_in1, loop2=buffer_in2)
 
-def main():
+def loop():
     global status,data_count,loop_count
     # main loop
     status=CLOSED
@@ -318,6 +318,6 @@ def main():
                 data_count += 1
         loop_count += 1
 #
-main()
+loop()
 
 # end of program
