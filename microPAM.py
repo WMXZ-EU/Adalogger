@@ -19,14 +19,13 @@ from lib import adafruit_ds3231
 from lib import I2S
 
 import alarm
-from micropython import const
 
 #------------------------------------
 # acquisition constants
 #------------------------------------
-t_on = const(60)   # seconds
-t_acq = const(3)   # minutes (for continuous recording set t_acq > t_rep=
-t_rep = const(5)   # minutes
+t_on = 60   # seconds
+t_acq = 3   # minutes (for continuous recording set t_acq > t_rep=
+t_rep = 5   # minutes
 #------------------------------------
 # implementation
 #------------------------------------
@@ -65,7 +64,7 @@ def does_file_exist(filename):
 
 def logger(data):
     global status, loop_count, data_count, total_bytes_written
-    global time_open, old_time, old_hour
+    global old_time, old_hour
     global t_on,t_acq,t_rep
     global led
     global wav
@@ -74,7 +73,6 @@ def logger(data):
     if status == CLOSED:
         # open new file
         led.value = True
-        time_open = time()
         t=r.datetime
         date_str =f"{t.tm_year:04d}{t.tm_mon:02d}{t.tm_mday:02d}"
         time_str =f"{t.tm_hour:02d}{t.tm_min:02d}{t.tm_sec:02d}"
@@ -111,10 +109,8 @@ def logger(data):
         led.value = False
 
         # check to close
-        tmp_time=(time() % t_on )
+        tmp_time=(int(time()) % t_on )
         if (tmp_time < old_time) | (status == MUST_STOP):
-            old_time = tmp_time
-
             # create header for WAV file and write to SD card
             update_header(total_bytes_written)
             wav_header=header
@@ -140,6 +136,7 @@ def logger(data):
             else:
                 status = CLOSED
                 hibernate(t_acq,t_rep)
+        old_time = tmp_time
     return status
 
 def update_time():
@@ -215,17 +212,17 @@ def wait_for_Serial(secs):
 
 #====================== Setup ====================================
 # general constants not to be changed frequently
-SerWait = 5 # seconds to wait for Serial port (interactive)
+SerWait = 3 # seconds to wait for Serial port (interactive)
 
 NCH = 1
 fsamp = 48000
 microcontroller.cpu.frequency=48_000_000
 
 #-----------------------------------------------------------------
-CLOSED = const(0)
-RECORDING = const(1)
-MUST_STOP = const(2)
-STOPPED = const(3)
+CLOSED      = 0
+RECORDING   = 1
+MUST_STOP   = 2
+STOPPED     = 3
 status = STOPPED
 
 loop_count = 0
@@ -234,7 +231,6 @@ data_count = 0
 header=bytearray(512)
 prep_header(num_channels=NCH,sampleRate=fsamp,bitsPerSample=32)
 
-time_open = time()
 old_time:int = 0
 old_hour:int = 24
 
@@ -319,5 +315,4 @@ def loop():
         loop_count += 1
 #
 loop()
-
 # end of program
